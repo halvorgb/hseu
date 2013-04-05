@@ -1,0 +1,5 @@
+main = interact solveIt
+
+solveIt :: String -> String
+
+solveIt s = "hallo"
