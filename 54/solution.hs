@@ -1,5 +1,7 @@
 import qualified Data.List as L
 import System.Environment
+import qualified Data.Maybe as Mb
+import Control.Monad
 
 data Suit = Spades | Hearts | Diamonds | Clubs
           deriving(Eq, Ord, Bounded, Show)
@@ -107,33 +109,14 @@ compareHands hand1 hand2 =
     rank2 = getRank hand2    
     high1 = L.sortBy (flip compare) $ toCardList hand1
     high2 = L.sortBy (flip compare) $ toCardList hand2
-    
-getRank :: Hand -> Rank
-getRank h =
-  case royalFlush h of
-    Just c -> RoyalFlush c
-    _ -> case straightFlush h of
-      Just c -> StraightFlush c
-      _ -> case fourOfAKind h of
-        Just c -> FourOfAKind c
-        _ -> case fullHouse h of
-          Just (c, c') -> FullHouse c c'
-          _ -> case flush h of 
-            Just c -> Flush c
-            _ -> case straight h of
-              Just c -> Straight c
-              _ -> case threeOfAKind h of
-                Just c -> ThreeOfAKind c
-                _ -> case twoPair h of
-                  Just (c, c') -> TwoPair c c'
-                  _ -> case onePair h of
-                    Just c -> OnePair c
-                    _ -> let hc = highCard h
-                         in HighCard hc
 
-royalFlush :: Hand -> Maybe Card
+getRank :: Hand -> Rank
+getRank h = Mb.fromMaybe (HighCard (highCard h)) . msum . map ($ h) $ [royalFlush, straightFlush, fourOfAKind, fullHouse, flush, straight, 
+              threeOfAKind, twoPair, onePair]
+
+royalFlush :: Hand -> Maybe Rank
 royalFlush h
-  | null cheque = L.find (\c -> cVal c == Ace) cardList
+  | null cheque = Just (RoyalFlush (Card Ace (cSuit one)))
   | otherwise = Nothing
   where
     cardList@[one, two, three, four, five] = toCardList h
@@ -146,7 +129,7 @@ royalFlush h
                                 else (suit, remaining)
                            ) (cSuit one, [Ten, Jack, Queen, King, Ace]) cardList
 
-straightFlush :: Hand -> Maybe Card
+straightFlush :: Hand -> Maybe Rank
 straightFlush h =
   case flush h of
     Just c -> case straight h of
@@ -155,18 +138,18 @@ straightFlush h =
     _ -> Nothing
 
                   
-flush :: Hand -> Maybe Card
+flush :: Hand -> Maybe Rank
 flush h
-  | length sameSuit == 5 = Just $ highCard h
+  | length sameSuit == 5 = Just $ Flush $ highCard h
   | otherwise = Nothing
   where
     cardList@[one, two, three, four, five] = toCardList h
     oneSuit = cSuit one
     sameSuit = L.filter (\c -> cSuit c == oneSuit) cardList
     
-straight :: Hand -> Maybe Card
+straight :: Hand -> Maybe Rank
 straight h
-  | isStraight = Just highest
+  | isStraight = Just $ Straight highest
   | otherwise = Nothing
                  
   where
@@ -196,10 +179,10 @@ straight h
     nextValue Three = Two
     nextValue Two = Ace
 
-fourOfAKind :: Hand -> Maybe Card
+fourOfAKind :: Hand -> Maybe Rank
 fourOfAKind h
-  | length l1 == 4 = Just one
-  | length l2 == 4 = Just two
+  | length l1 == 4 = Just $ FourOfAKind one
+  | length l2 == 4 = Just $ FourOfAKind two
   | otherwise = Nothing
   where
     cardList@[one, two, three, four, five] = toCardList h
@@ -209,11 +192,11 @@ fourOfAKind h
     l1 = filter (\c -> cVal c == oneVal) cardList
     l2 = filter (\c -> cVal c == twoVal) cardList
     
-threeOfAKind :: Hand -> Maybe Card
+threeOfAKind :: Hand -> Maybe Rank
 threeOfAKind h
-  | length l1 == 3 = Just one
-  | length l2 == 3 = Just two
-  | length l3 == 3 = Just three
+  | length l1 == 3 = Just $ ThreeOfAKind one
+  | length l2 == 3 = Just $ ThreeOfAKind two
+  | length l3 == 3 = Just $ ThreeOfAKind three
   | otherwise = Nothing
   where
     cardList@[one, two, three, four, five] = toCardList h
@@ -225,12 +208,12 @@ threeOfAKind h
     l2 = filter (\c -> cVal c == twoVal) cardList
     l3 = filter (\c -> cVal c == threeVal) cardList
     
-onePair :: Hand -> Maybe Card
+onePair :: Hand -> Maybe Rank
 onePair h
-  | length l1 == 2 = Just one
-  | length l2 == 2 = Just two
-  | length l3 == 2 = Just three
-  | length l4 == 2 = Just four
+  | length l1 == 2 = Just $ OnePair one
+  | length l2 == 2 = Just $ OnePair two
+  | length l3 == 2 = Just $ OnePair three
+  | length l4 == 2 = Just $ OnePair four
   | otherwise = Nothing
   where
     cardList@[one, two, three, four, five] = toCardList h
@@ -246,9 +229,9 @@ onePair h
 
 
 -- only returns something for two pairs, not full house
-twoPair :: Hand -> Maybe (Card, Card)
+twoPair :: Hand -> Maybe Rank
 twoPair h
-  | length pairs == 2 = Just (pairs' !! 1, pairs' !! 0)
+  | length pairs == 2 = Just $ TwoPair (pairs' !! 1) (pairs' !! 0)
   | otherwise = Nothing
   where
     cardList@[one, two, three, four, five] = toCardList h
@@ -262,11 +245,11 @@ twoPair h
                           else pairsFound
                      ) [] $ cardList
 
-fullHouse :: Hand -> Maybe (Card, Card)
+fullHouse :: Hand -> Maybe Rank
 fullHouse h =
   case threeOfAKind h of 
-    Just c -> case onePair h of
-      Just c' -> Just (c, c')
+    Just (ThreeOfAKind c) -> case onePair h of
+      Just (OnePair c') -> Just $ FullHouse c c'
       _ -> Nothing
     _ -> Nothing
 
