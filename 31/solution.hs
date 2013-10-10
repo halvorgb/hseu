@@ -1,26 +1,25 @@
-import Data.List
-import Data.Maybe
--- FEIL
-values = [1, 2, 5, 10, 20, 50, 100, 200]
+import qualified Data.List as L
+import qualified Data.Map as M
+coins = [1,2,5,10,20, 50, 100]
 
-solve n = solveShit (fromJust (elemIndex n values))
+-- finn på hvor mange måter man kan bygge opp 1 på, så 2.. så 3.
 
-solveShit :: Int -> [(Int, Int)]
---                   (n, combinations)
-solveShit 0 = [(1, 1)]
-solveShit n = (nVal, combs):solveShit (n-1)
+
+solve = L.foldl (\m c -> ways m 1 c) initialMap coins
   where
-    nVal = values !! n
-    prevCombs = solveShit (n-1) -- recursion
-    combs = combinations nVal prevCombs -- amount of combinations this coin can be made up of.
+    initialMap = M.fromList $ [(0, 1)] ++ (zip [1..200] $ replicate 200 0)
 
-      
-combinations :: Int -> [(Int, Int)] -> Int
-combinations n ((pn, cn):t)
-  | t == []    =  
-  | modBy == 0 = (cn^divBy) +1 -- 
-  | otherwise  = divBy + combinations modBy t
+ways :: M.Map Int Int -> Int -> Int -> M.Map Int Int
+ways mem 201 _ = mem
+ways mem num coin = 
+  case prevResult of
+    Just n -> let mem' = M.update (\m -> Just (m+n)) num mem
+              in ways mem' (num+1) coin
+    _ -> ways mem (num+1) coin
   where
-    modBy = mod n pn
-    divBy = div n pn
+    rest = num - coin
+    prevResult = M.lookup rest mem
 
+
+
+   
