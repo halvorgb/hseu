@@ -13,8 +13,6 @@ toTriangle x = round $ fix*(fix+1)/2
   where
     fix = fromIntegral x
 
-
-
 isPentagonal :: Int -> Bool
 isPentagonal x = 
   (fromIntegral $ round n) == n
