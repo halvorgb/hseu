@@ -8,7 +8,7 @@ solution = L.foldl' (\sum base ->
 
 
 test :: Integer -> Integer -> Bool
-test base pow = 
+test base pow =
   (fromIntegral pow) == nofDigits ans 0
   where
     ans :: Integer
