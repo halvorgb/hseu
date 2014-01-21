@@ -11,7 +11,7 @@ solve = L.foldl (\m c -> ways m 1 c) initialMap coins
 
 ways :: M.Map Int Int -> Int -> Int -> M.Map Int Int
 ways mem 201 _ = mem
-ways mem num coin = 
+ways mem num coin =
   case prevResult of
     Just n -> let mem' = M.update (\m -> Just (m+n)) num mem
               in ways mem' (num+1) coin
@@ -19,7 +19,3 @@ ways mem num coin =
   where
     rest = num - coin
     prevResult = M.lookup rest mem
-
-
-
-   

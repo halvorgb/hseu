@@ -1,73 +1,34 @@
-import qualified Data.Map as Map
-import qualified Data.Maybe as Maybe
---solve :: Int -> Int
---solve n = length $ filter uniqueTriangles [1..n]
+module Main where
+import System.Environment
+import qualified Data.List as L
+import qualified Data.Map as M
 
-{-
-a + b + c = d
-a² + b² = c²
+main = do
+  [n] <- getArgs
+  putStrLn $ show $ solve'' $ read n
 
-a <= b < c
--}
+solve'' :: Integer -> Int
+solve'' l = M.size $ M.filter (== 1) $ L.foldl' (generateTriangles l) M.empty ms
+    where
+      ms :: [Integer]
+      ms = [2..(ceiling $ sqrt $ (fromIntegral l)/2)]
 
-uniqueTriangles :: Int -> Int
-uniqueTriangles l = severalTriangles 0 $ concat $ zipABs as
-  where
-    third = div l 3
-    as :: [Int]
-    as = [1..(third + 1)]
-
-    zipABs :: [Int] -> [[(Int, Int)]]
-    zipABs [] = []
-    zipABs (a:as) = (zip (repeat a) $ [(a+1)..(third + 2)]):zipABs as
-
-    severalTriangles :: Int ->  [(Int, Int)] -> Int
-    severalTriangles found [] = found
-    severalTriangles found ((a,b):abs')
-      | found == 1 &&
-        cCheck = 2
-      | cCheck =  severalTriangles 1 abs'
-
-      | otherwise = severalTriangles found abs'
-      where
-        c = l - a - b
-        cCheck = c^2 == a^2 + b^2
-
-{-
-Idè, finn antall løsninger til L_n: enten 0, 1, eller 2+.
--> For alle L_n * i, hvor i <= 15000000/n
---> Adder antall løsninger til svaret i L_(n*i).
---> ved en ny L_n, dersom antall > 1 => hopp videre umiddelbart.
-
--> Issue: jævlig mange redundant updates.
-
--}
-
-solve :: Int -> Int
-solve n = countUniqueTriangles n 1 0 Map.empty
+generateTriangles :: Integer -> M.Map Integer Int -> Integer -> M.Map Integer Int
+generateTriangles l mp m = updMap l ns m mp
+    where
+      ns = L.filter (\n -> odd (m + n) && gcd m n == 1 ) [1..(m-1)]
 
 
-addToMultiples :: Int -> Int -> Int -> Map.Map Int Int -> Map.Map Int Int
-addToMultiples maxbound n val mem = foldl (\m key -> Map.adjust (+val) key m) mem keys
-  where
-    keys = takeWhile (<= maxbound) $ map (*n) [2..]
-
-countUniqueTriangles :: Int -> Int -> Int -> Map.Map Int Int -> Int
-countUniqueTriangles maxbound n count mem
-  | n > maxbound = count
-  | otherwise    = case Map.lookup n mem of
-    Just c -> if c > 1
-              then countUniqueTriangles maxbound n' count mem
-              else countUniqueTriangles maxbound n' count' mem'
-    _ -> countUniqueTriangles maxbound n' count' mem'
-  where
-    n' = n+1
-
-    x = uniqueTriangles n
-
-    (count', mem')
-      | x == 1    = (count + 1, mem'')
-      | x == 2    = (count, mem'')
-      | otherwise = (count, mem)
-      where
-        mem'' = addToMultiples maxbound n x mem
+updMap :: Integer -> [Integer] -> Integer -> M.Map Integer Int -> M.Map Integer Int
+updMap l ns m mp = L.foldl' (\mp' n ->
+                               let a = m^2 - n^2
+                                   b = 2 * m * n
+                                   c = m^2 + n^2
+                                   p = a + b + c
+                                   pms = takeWhile (<= l) $ map (*p) [1..]
+                               in L.foldl' (\mp'' pm -> M.alter alterFunc pm mp'') mp' pms
+                            ) mp ns
+    where
+      alterFunc :: Maybe Int -> Maybe Int
+      alterFunc Nothing  = Just 1
+      alterFunc (Just x) = Just (x + 1)

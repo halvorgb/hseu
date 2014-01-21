@@ -1,11 +1,33 @@
 import qualified Data.List as L
 import qualified Data.Numbers.Primes as Primes
+import System.Environment
 
-solve :: Int -> Int
-solve n = totientMaximum [1..n] (takeWhile (< 1000000) Primes.primes) 0.0
+main :: IO ()
+main = do
+  [n] <- getArgs
+  return ()
 
-totientMaximum :: [Int] -> [Int] -> Double -> Int
-totientMaximum (n:ns) primes mem = n
+solve :: Int -> (Int, Double)
+solve n = totientMaximum 2 n (0, -0.0)
 
+totientMaximum :: Int -> Int -> (Int, Double) -> (Int, Double)
+totientMaximum n top mem@(m, mx)
+    | n > top = mem
+    | otherwise = totientMaximum n' top mem'
+    where
+      facs = L.nub $ Primes.primeFactors n
 
-bjarne = fold
+      totient
+          | null facs = fin - 1
+          | otherwise =
+              fin * (L.foldl' (\acc fac ->
+                               acc * (1.0 - 1/(fromIntegral fac))
+                              ) 1.0 facs)
+      fin :: Double
+      fin = fromIntegral n
+      n' = n + 1
+
+      tt = fin/totient
+      mem' = if tt > mx
+             then (n, tt)
+             else mem
